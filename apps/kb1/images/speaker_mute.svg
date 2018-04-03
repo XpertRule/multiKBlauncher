@@ -1,7 +1,0 @@
-<svg width="25px" height="25px" viewBox="0 0 50 50" preserveAspectRatio="xMinYMax meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <defs/>
-  <g>
-    <path stroke="none" fill="#000000" fill-opacity="0.00392156862745098" d="M34.15 21.6 L37.55 25 34.2 28.4 37.55 25 34.15 21.6 M17.25 29.6 L28.05 40.45 28.05 9.55 17.25 20.4 9.15 20.4 9.15 29.6 17.25 29.6 9.15 29.6 9.15 20.4 17.25 20.4 28.05 9.55 28.05 40.45 17.25 29.6 M50 50 L0 50 0 0 50 0 50 50 M40.9 28.4 L37.55 25 40.9 21.6 37.55 25 40.9 28.4"/>
-    <path fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M17.25 29.6 L9.15 29.6 9.15 20.4 17.25 20.4 28.05 9.55 28.05 40.45 17.25 29.6 M34.2 28.4 L37.55 25 34.15 21.6 M40.9 21.6 L37.55 25 40.9 28.4"/>
-  </g>
-</svg>
