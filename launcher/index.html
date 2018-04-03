@@ -45,6 +45,10 @@
             // code required here to send reset email to "email" with one/limited time access code
             successCB();
         }
+        function doSignup(email, password, successCB, failCB) {
+            // code required here to send signup email to supplied address
+            successCB();
+        }
         function doPopulateKBs(successCB, failCB) {
             // populate the list
             successCB({
@@ -73,10 +77,6 @@
                 ]
             });
             // failCB("woops");
-        }
-        function doSignup(email, password, successCB, failCB) {
-            // code required here to send signup email to supplied address
-            successCB();
         }
         /* -------------------------------------------------------------------- */
         /* -------------------------------------------------------------------- */
