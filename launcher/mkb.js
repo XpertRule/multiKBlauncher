@@ -99,7 +99,10 @@ var mkb = {
     populateList: function($container) {
         var self = this;
         $container.empty();
-        var cw = $container.width();
+
+        var scroll_width = 10; // from css
+
+        var cw = $container.width() - scroll_width; // container client width
 
         var sz = 128; // default size
         var pd = 8; // default padding
