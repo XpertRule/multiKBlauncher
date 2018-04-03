@@ -38,7 +38,7 @@ var mkb = {
         self.performSignupCB = performSignupCB;
         self._userObj = false;
         if (self.persistUser && (typeof(Storage) !== "undefined")) {
-            // OK, we have local storage on this browser. Tru and retrieve the  user object
+            // OK, we have local storage on this browser. Try and retrieve the user object
             var u = localStorage.getItem(self.LOCAL_STORAGE_USER_KEY);
             if (u) {
                 try {
@@ -47,7 +47,7 @@ var mkb = {
                     u = null;
                 }
             }
-            if (u && $.isPlainObject(u)) {
+            if (u && $.isPlainObject(u) && u.email) {
                 self._userObj = u;
             }
         }
@@ -205,7 +205,7 @@ var mkb = {
             function(userObj) {
                 self._userObj = userObj;
                 if (self.persistUser && (typeof(Storage) !== "undefined")) {
-                    // OK, we have local storage on this browser. Store the user object
+                    // OK, we have local storage on this browser. Store the user object there
                     localStorage.setItem(self.LOCAL_STORAGE_USER_KEY, JSON.stringify(userObj));
                 }
                 successCB(self._userObj);
