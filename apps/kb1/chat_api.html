@@ -1,0 +1,351 @@
+<html>
+  <head>
+    <style>
+      body {
+        margin: 8px;
+        color: #444;
+        font-family: arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.5em
+      }
+
+      .emoji {
+        width: 1em;
+        height: 1em;
+        vertical-align: baseline;
+      }
+
+      a{ color: #0645ad; text-decoration:none;}
+      a:visited{ color: #0b0080; }
+      a:hover{ color: #06e; }
+      a:active{ color:#faa700; }
+      a:focus{ outline: thin dotted; }
+      a:hover, a:active{ outline: 0; }
+
+      p{margin:1em 0;}
+
+      img{max-width:100%;}
+
+      h1,h2,h3,h4,h5,h6{font-weight:normal;color:#111;line-height:1em;}
+      h4,h5,h6{ font-weight: bold; }
+      h1{ font-size:2.5em; }
+      h2{ font-size:2em; border-bottom:1px solid silver; padding-bottom: 5px; }
+      h3{ font-size:1.5em; }
+      h4{ font-size:1.2em; }
+      h5{ font-size:1em; }
+      h6{ font-size:0.9em; }
+
+      blockquote{color:#666666;margin:0;padding-left: 3em;border-left: 0.5em #EEE solid;}
+      hr { display: block; height: 2px; border: 0; border-top: 1px solid #aaa;border-bottom: 1px solid #eee; margin: 1em 0; padding: 0; }
+
+      pre, code{
+        color: #000;
+        font-family:Consolas, "Liberation Mono", Menlo, Courier, monospace;
+        font-size: 0.94em; /* 0.94 = 0.88 + (1.00 - 0.88) / 2 */
+        border-radius:3px;
+        background-color: #F8F8F8;
+        border: 1px solid #CCC;
+      }
+      pre { white-space: pre; white-space: pre-wrap; word-wrap: break-word; padding: 5px;}
+      pre code { border: 0px !important; background: transparent !important; line-height: 1.3em; }
+      code { padding: 0 3px 0 3px; }
+      sub, sup { font-size: 75%; line-height: 0; position: relative; vertical-align: baseline; }
+      sup { top: -0.5em; }
+      sub { bottom: -0.25em; }
+      ul, ol { margin: 1em 0; padding: 0 0 0 2em; }
+      li p:last-child { margin:0 }
+      dd { margin: 0 0 0 2em; }
+      img { border: 0; -ms-interpolation-mode: bicubic; vertical-align: middle; }
+      table { border-collapse: collapse; border-spacing: 0; }
+      td, th { vertical-align: top; padding: 4px 10px; border: 1px solid #bbb; }
+      tr:nth-child(even) td, tr:nth-child(even) th { background: #eee; }
+    </style>
+  </head>
+<body>
+<!--   rendered from readme.md  at  https://jbt.github.io/markdown-editor     ctrl-shift-s in editor and paste below    -->
+
+
+
+<h1>XpertRule NLP API</h1>
+<h2>Overview</h2>
+<p>The recomended way to integrate with the XpertRule NLP engine is via the "<a href="http://chat.js">chat.js</a>" javascript file.</p>
+<p>This file exposes the "xrkb_chat" function which is used to communicate with the server</p>
+<p>Examples in this document are based on the following publicly available demonstration...</p>
+<p><a href="https://rpa.xpertrule.com:8134/FS%20Demo%20Sep%2017/main.html">https://rpa.xpertrule.com:8134/FS%20Demo%20Sep%2017/main.html</a></p>
+<h2>Anatomy of a conversation (Step 1 - Start Inference)</h2>
+<p>Call chat with an empty message...</p>
+<pre><code class="language-javascript">xrkb_chat({}, chatCallbackFunction);
+</code></pre>
+<p><em>n.b. By default xrkb_chat calls the chat server based on the URL of "<a href="http://chat.js">chat.js</a>".
+If the front end files are served from a location different to the chat server, you can pass an optional "url" parameter in each input message to specify the engine's location.
+e.g. xrkb_chat({url: "<a href="https://rpa.xpertrule.com:8134/FS%20Demo%20Sep%2017">https://rpa.xpertrule.com:8134/FS Demo Sep 17</a>"}, chatCallbackFunction);</em></p>
+<p>The engine will respond by calling the function specified in the second parameter (in this case <strong>chatCallbackFunction</strong>) and passing a result object as the first parameter to this function. e.g.</p>
+<pre><code class="language-javascript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">chatCallbackFunction</span><span class="hljs-params">(result)</span> </span>{
+    <span class="hljs-comment">// deal with the result object here</span>
+}
+</code></pre>
+<p>The result object passed to the callback function might look something like this...</p>
+<pre><code class="language-javascript">{
+    ok: <span class="hljs-literal">true</span>,
+    mode: <span class="hljs-string">"pause"</span>,
+    output : {<span class="hljs-comment">/* object passed from knolwedge builder */</span>},
+    speak: <span class="hljs-string">"Welcome to our Financial Services Demo"</span>,
+    vocabulary: [<span class="hljs-comment">/* array of string to help the speech to text recogniser */</span>],
+    session: {<span class="hljs-comment">/* internal session object to pass in the next call */</span>}
+}
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ok</td>
+<td>boolean</td>
+<td>Has the API call been succesful</td>
+</tr>
+<tr>
+<td>mode</td>
+<td>string</td>
+<td>Why has inference stopped (i.e. what action should the front end perform). Possible values are "pause", "question", "message" or "end"</td>
+</tr>
+<tr>
+<td>output</td>
+<td>object</td>
+<td>The object passed back from the knowledge base via the xpertrule.chat function (see below for more details)</td>
+</tr>
+<tr>
+<td>session</td>
+<td>object</td>
+<td>An internal session object. You must pass this as the session property of the input message to the NEXT call of xrkb_chat</td>
+</tr>
+<tr>
+<td>speak</td>
+<td>string</td>
+<td>Alternative text to send to the text-to-speech processor</td>
+</tr>
+<tr>
+<td>vocabulary</td>
+<td>array of strings</td>
+<td>list of words to use as helpers in the speech-to-text conversion</td>
+</tr>
+</tbody>
+</table>
+<p>In the sample URL, the first return will be a "pause" mode. This mode is triggered by the inference engine encountering an xpertrule.chat() call. e.g.</p>
+<pre><code class="language-javascript">xpertrule.chat({
+  includeBubble: <span class="hljs-literal">true</span>,
+  css: {
+    <span class="hljs-string">"background-color"</span>: <span class="hljs-string">"rgb(42, 100, 180)"</span>,
+    <span class="hljs-string">"color"</span>: <span class="hljs-string">"rgb(220,220,220)"</span>,
+    <span class="hljs-string">"font-size"</span>: <span class="hljs-string">"20px"</span>,
+    <span class="hljs-string">"opacity"</span>: <span class="hljs-number">1</span>
+  },
+  speak: <span class="hljs-string">"Welcome to our Financial Services Demo"</span>,
+  contents: <span class="hljs-string">"Welcome to our Financial Services Demo"</span>
+});
+</code></pre>
+<p><em>n.b. The xpertrule.chat() call and the subsequent handling of the "pause" mode can be used in numerous ways. In the default UI it is used to render rich messages but can be used for any communication between the server and the client.</em></p>
+<h2>Anatomy of a conversation (Step 2 - Render the Inference State)</h2>
+<p>It's now the responsability of the client to render the current state of the engine to the user. In our example, in response to a "pause" mode we just display a message to the user and continue inference.</p>
+<h2>Anatomy of a conversation (Step 3 - Continue inference)</h2>
+<p>In our example, the "pause" mode just displays a message and then continues. To continue inference, we make another call to <strong>xrkb_chat</strong> with the input object having just 2 properties (or 3 if you are supplying a custom engine URL). e.g.</p>
+<pre><code class="language-javascript">xrkb_chat({
+    input: <span class="hljs-string">""</span>,
+    session: {<span class="hljs-comment">/* previously returned internal session object */</span>}
+}, chatCallbackFunction);
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>input</td>
+<td>string</td>
+<td>The result of the current state. In the example of "pause" we just want to continue and for this there is not input and so we just pass an empty string. If we were rendering a question, this would be the user's selection</td>
+</tr>
+<tr>
+<td>session</td>
+<td>object</td>
+<td>This is the session object returned from the <strong>PREVIOUS</strong> callback from xrkb_chat</td>
+</tr>
+</tbody>
+</table>
+<h2>Anatomy of a conversation (Step 4 - Next Inference Stop Point)</h2>
+<p>In our example, the next call to the engine stops on our first real question. In this case it's the <strong>Financial_Service</strong> question. The contents of the first parameter passed to the chatCallbackFunction might be something like...</p>
+<pre><code class="language-javascript">{
+    ok: <span class="hljs-literal">true</span>,
+    mode: <span class="hljs-string">"question"</span>,
+    questionID: <span class="hljs-number">141</span>,
+    allow_blank: <span class="hljs-literal">false</span>,
+    question_mode: <span class="hljs-string">"select"</span>
+    question_values: [
+        {
+            id: <span class="hljs-number">1</span>,
+            text: <span class="hljs-string">"Annuity Advice"</span>
+        }, {
+            id: <span class="hljs-number">2</span>,
+            text: <span class="hljs-string">"Trust Advice"</span>
+        }
+    ],
+    output: <span class="hljs-string">"What can I advise you on today?"</span>
+    speak: <span class="hljs-string">"Welcome to our Financial Services Demo"</span>,
+    vocabulary: [<span class="hljs-comment">/* array of strings to help the speech to text recogniser */</span>],
+    session: {<span class="hljs-comment">/* internal session object to pass in the next call */</span>}
+}
+</code></pre>
+<p>Note that the <strong>mode</strong> is now "question"! The <strong>speak</strong>, <strong>vocabulary</strong> and <strong>session</strong> parameters have the same functionality as the first example call so we won't include them in the documentation here</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ok</td>
+<td>boolean</td>
+<td>Has the API call been succesful</td>
+</tr>
+<tr>
+<td>mode</td>
+<td>string</td>
+<td>"question" means that we need to request some data from the user</td>
+</tr>
+<tr>
+<td>questionID</td>
+<td>integer</td>
+<td>The internal Knowledge Builder ID of this question</td>
+</tr>
+<tr>
+<td>allow_blank</td>
+<td>boolean</td>
+<td>Is this question allowed to be left blank?</td>
+</tr>
+<tr>
+<td>question_mode</td>
+<td>string</td>
+<td>The type of question. Possible values are "select", "multiple", "numeric", "date" or "text"</td>
+</tr>
+<tr>
+<td>question_values</td>
+<td>array of objects</td>
+<td>These are the selection available to the user for this question. Each selection has a unique ID (use for relaying the selection back to the engine) and some text to display</td>
+</tr>
+<tr>
+<td>output</td>
+<td>string</td>
+<td>The prompt text to display for this question</td>
+</tr>
+</tbody>
+</table>
+<p>In this example, the client would now render the question. The user would then make their selection and then proceed</p>
+<h2>Anatomy of a conversation (Step 5 - Continuing on with User Selections)</h2>
+<p>Following our example, if the user chose the "Truse Advice" selection, we would again call xrkb_chat using the "input" property to specify the selected value...</p>
+<pre><code class="language-javascript">xrkb_chat({
+    input: <span class="hljs-string">"\"~2\""</span>,
+    session: { <span class="hljs-comment">/* session object returned by PREVIOUS call */</span>}
+}, chatCallbackFunction);
+</code></pre>
+<p>As you can see, the <strong>input</strong> property relays the user's selection (id 2 relates to the "Truse Advice" selection as detailed by the question_values property in the question definition)</p>
+<p><em>n.b. The formatting of the <strong>input</strong> string is important here. Notice that the passed string is double-quote delimited and preceeds the selection id with a tilda (~) symbol! This formatting is only used for "select" type questions</em></p>
+<h2>Anatomy of a conversation (Step 6 - Response from a User Selection)</h2>
+<p>The inference now stops on the next question (in our example, this is the <strong>Domiciled</strong> question). The result message not only contains details of the current question, but also details of the previous selection...</p>
+<pre><code class="language-javascript">{
+    ok: <span class="hljs-literal">true</span>,
+
+    previousQuestionID: <span class="hljs-number">141</span>,
+    previousValue: <span class="hljs-string">"~2"</span>,
+
+    mode: <span class="hljs-string">"question"</span>,
+    questionID: <span class="hljs-number">107</span>,
+    allow_blank: <span class="hljs-literal">false</span>,
+    question_mode: <span class="hljs-string">"select"</span>
+    question_values: [
+        {
+            id: <span class="hljs-number">1</span>,
+            text: <span class="hljs-string">"Yes"</span>
+        }, {
+            id: <span class="hljs-number">2</span>,
+            text: <span class="hljs-string">"No"</span>
+        }
+    ],
+    output: <span class="hljs-string">"Are you UK domiciled for Inheritance Tax purposes?&lt;div class=\"more-button\" id=\"Domiciled_exbtn\" onclick=\"extraInfoClick('Domiciled_exbtn', 'Domiciled_exinfo')\"&gt;More..."</span>,
+    speak: <span class="hljs-string">"Are you UK domiciled for Inheritance Tax purposes?"</span>,
+    vocabulary: [<span class="hljs-comment">/* array of strings to help the speech to text recogniser */</span>],
+    session: {<span class="hljs-comment">/* internal session object to pass in the next call */</span>}
+}
+</code></pre>
+<p>The content of this message is very similar to the initial question but with the previous response properties supplied...</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>previousQuestionID</td>
+<td>integer</td>
+<td>The questionID of the previous question</td>
+</tr>
+<tr>
+<td>previousValue</td>
+<td>string</td>
+<td>The selection applied to the knowledge base by the previous selection</td>
+</tr>
+</tbody>
+</table>
+<p><em>n.b. The reason for returning the previous selection in this message is that if the previous selection was made via NLP (see future section for more details), the client would only know which selection to make once the engine has returned.</em></p>
+<p><em>n.b. Notice that the <strong>output</strong> property here contains HTML and calls a custom client function "extraInfoClick" in repsonse to clicking the rendered "more" button. This HTML is build dynamically by the engine during inference.</em></p>
+<h2>Responding to Different Question Types</h2>
+<p>In response to a <strong>question_mode</strong> of "text" you would simple send the raw text entered by the user. e.g.</p>
+<pre><code class="language-javascript">xrkb_chat({
+    input: <span class="hljs-string">"This questionaire has been a great experiance"</span>,
+    session: { <span class="hljs-comment">/* session object returned by PREVIOUS call */</span>}
+}, chatCallbackFunction);
+</code></pre>
+<p><strong>question_mode</strong> of "date" requires that the date be encoded as a string in JSON format. Some sample code to achieve this might look like...</p>
+<pre><code class="language-javascript"><span class="hljs-keyword">var</span> dateObj = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Date</span>(<span class="hljs-number">2017</span>, <span class="hljs-number">10</span>, <span class="hljs-number">31</span>);
+xrkb_chat({
+    input: dateObj.toJSON(),
+    session: { <span class="hljs-comment">/* session object returned by PREVIOUS call */</span>}
+}, chatCallbackFunction);
+</code></pre>
+<p>For <strong>question_mode</strong> of "number", simple send the number as a string...</p>
+<pre><code class="language-javascript">xrkb_chat({
+    input: <span class="hljs-string">"42"</span>,
+    session: { <span class="hljs-comment">/* session object returned by PREVIOUS call */</span>}
+}, chatCallbackFunction);
+</code></pre>
+<p>!!! TODO : question_mode of "multiple"</p>
+<h2>Responding to Questions via Natural Language</h2>
+<p>If the user responds to a question via NLP (either by directly entering free-format text or via speech-to-text), this raw text can simply be sent as the <strong>input</strong> parameter. e.g.</p>
+<pre><code class="language-javascript">xrkb_chat({
+    input: <span class="hljs-string">"I would like some annuity advice please"</span>,
+    session: { <span class="hljs-comment">/* session object returned by PREVIOUS call */</span>}
+}, chatCallbackFunction);
+</code></pre>
+<p>The engine would perform NLP and (if possible) derive a value for the current question.</p>
+<p>!!! TODO : response if no match is found</p>
+
+<hr>
+<p>V1.2 © XpertRule Software Ltd. 2017</p>
+
+
+
+
+</body>
+</html>

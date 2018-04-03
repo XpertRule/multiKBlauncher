@@ -1,0 +1,128 @@
+/* light THEME */
+*::-webkit-scrollbar-track
+{
+
+    background-color: #cccccc;
+}
+
+*::-webkit-scrollbar
+{
+    width: 5px;
+    background-color: #0099cc;
+}
+
+*::-webkit-scrollbar-thumb
+{
+    background-color: #0099cc;
+}
+
+#page {
+    background-color: #dddddd;
+}
+
+.log-line .log-txt {
+    background-color: #eeeeee;
+    color: #333333;
+}
+
+.value_btn {
+    border-bottom: 4px solid #888888;
+    background-color: #999999;
+}
+
+.value_btn_selected {
+    background-color: #09c;
+    color: #fff;
+    border-color: #0077aa;
+}
+
+.more-button {
+    color: #333333;
+    border: 2px solid #555555;
+}
+
+.more-button:hover {
+    color: #999999;
+    border: 2px solid #999999;
+}
+
+.more-content {
+    border: 1px solid #cccccc;
+    border-left: 0;
+    border-right: 0;
+}
+
+.numeric_input, .text_input {
+    background-color: #cccccc;
+    color: #333333;
+    border-bottom: 2px solid #bbbbbb;
+}
+
+
+.date_day, .date_month, .date_year, .value_dropdown {
+    background: #999999 url(images/arrow_light.svg) right center no-repeat;
+    color: #ffffff;
+    border-bottom: 2px solid #888888;
+}
+
+.log-line.log-answer .log-txt,
+.log-line.log-error .log-txt {
+    color: #ffffff;
+}
+
+.speaker, .microphone, .recording {
+    background-color: #999999;
+}
+
+.question-back {
+    border: 2px solid #999999;
+    background-color: #999999;
+}
+
+.question-back:hover {
+    border: 2px solid #888888;
+    background-color: #888888;
+}
+
+@keyframes recording_circle_back_animate {
+    0%, 100% {
+        top: -100px; right: -100px;
+        background-color: rgba(0,0,0,0.1);
+        width: 200px;
+        height: 200px;
+    }
+    50% {
+        top: -40px; right: -40px;
+        background-color: rgba(0,0,0,0.5);
+        width: 80px;
+        height: 80px;
+    }
+}
+
+.question-menubtn.closed svg circle {
+    fill: #999999;
+}
+
+.question-menubtn.open svg path {
+    stroke: #999999;
+}
+
+.question-menuitem {
+    background-color: #cccccc;
+    border-bottom: 1px solid #bbbbbb;
+}
+
+.question-menuitem:hover {
+    background-color: #dddddd;
+}
+
+.hero-btn button{
+  color: #fff;
+  border: 2px solid #0099cc;
+  background-color: #0099cc;
+}
+
+.hero-btn button:hover{
+  border: 2px solid #0088bb;
+  background-color: #0088bb;
+}

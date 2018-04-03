@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+    <widget xmlns   = "http://www.w3.org/ns/widgets"
+        xmlns:gap   = "http://phonegap.com/ns/1.0"
+        id          = "com.xpertrule.phonegaptest1"
+        versionCode = "1" 
+        version     = "1.0" >
+
+    <!-- versionCode is optional and Android only -->
+
+    <name>PhoneGap Test 1</name>
+
+    <description>
+        Xpertrule PhoneGap Test 1
+    </description>
+
+    <author href="https://www.xpertrule.com/" email="info@xpertrule.com">
+        XpertRule Software Ltd
+    </author>
+
+    <access origin="*" />
+
+    <gap:plugin name="nl.x-services.plugins.flashlight" version="2.0.0" />
+</widget>

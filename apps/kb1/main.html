@@ -1,0 +1,1537 @@
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>FS Demo Sep 17</title>
+<link rel="icon" href="images/fav.png">
+
+<link rel="stylesheet" href="chat.css" />
+
+<script>
+window.onerror = function(msg, url, linenumber) {
+    var message = "Error message: " + msg + "\nURL: " + url + "\nLine Number: " + linenumber;
+    console.log(message);
+    return true;
+};
+</script>
+
+<script type="text/javascript" src="jquery-1.8.2.min.js"></script>
+<script type="text/javascript" src="chat.js"></script>
+<script type="text/javascript" src="jQuery-File-Upload/js/vendor/jquery.ui.widget.js"></script>
+<script type="text/javascript" src="jQuery-File-Upload/js/jquery.fileupload.js"></script>
+
+<script type="text/javascript" src="xpertrule.js"></script><link rel="stylesheet" href= "assets/fs_demo.css" /><script>window.XRchatMode = "browser";function require(fn) { return null; }</script>
+<script>
+var chat_settings = {"voice":true,"include_exit":false,"footer":"<a href=\"http:\/\/www.xpertrule.com\" target=\"_blank\">Powered by XpertRule<\/a>","allow_print":true,"menu":[]};
+// util function for processing the list value images
+function processImages(self) {
+  for (var c = 0; c < self.aValues.length; c++) {
+    if (self.aValues[c].imageSrc) {
+      self.aValues[c].aText = '<img src="assets/' + self.aValues[c].imageSrc + '" width="96" height="96" />';
+    }
+  }
+}</script>
+
+<script>
+    var query_params = getQueryParams(location.search);
+
+    //
+
+    var replay, replay_sessionID;
+    if((document.location.hash != "") && (document.location.hash != "#")) {
+        var s = document.location.hash;
+        if (s.substr(0, 1) == "#") {
+            s = s.substr(1);
+        }
+        if (s.match(/^[\-\+]?(?:\d*\.\d+|\d+)$/g)) {
+            replay_sessionID = parseInt(s, 10);
+        } else {
+            replay = JSON.parse(decodeURIComponent(s));
+        }
+    }
+
+    //
+    var general_counter = 0;
+
+    var host = location.hostname;
+
+    var isMob = /android|iPad|iPhone|iPod/.test(navigator.userAgent);
+
+    var language = "en-GB";
+    var isApp = false;
+    if(query_params.p === "app") {
+        isApp = true;
+    }
+
+    if (!window.hasOwnProperty("chat_settings")) {
+        chat_settings = {
+            voice: false
+        };
+    }
+    if ((typeof XRchatMode == "string") && (XRchatMode == "browser")) {
+        chat_settings.voice = false; // no voice for browser deploy as TF-IDF is not supported in the client
+    }
+
+    var showSoundControls = false;
+    var automaticListen = false;
+    var mute = true;
+    var finalListen = true;  // should be listen on the "this concludes" prompt?
+
+    //sound
+    if(chat_settings.voice){
+        showSoundControls = true;
+        mute = false;
+        automaticListen = true;
+    }
+
+    //speech recognition
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    try {
+        var SpeechRecognition = SpeechRecognition || webkitSpeechRecognition;
+        var SpeechGrammarList = SpeechGrammarList || webkitSpeechGrammarList;
+        var SpeechRecognitionEvent = SpeechRecognitionEvent || webkitSpeechRecognitionEvent;
+    } catch(e) {
+        console.log(e);
+    }
+
+    var recognition;
+
+    function listen(txt){
+        var $input_wrap = $("#input_wrap");
+        
+        //ui
+        $("body") 
+            .addClass("listening");
+
+        //remove old
+        stopListen();
+
+        if(isApp == true){         //App
+            var parameters = {
+                method: "Listen",
+                parameters: {
+                    txt: txt,
+                },
+                callback: "listenCallback"
+            };  wrapperCall(parameters);
+        } else {                            //js
+            //start stuff
+            var grammar = '#JSGF V1.0; grammar phrase; public <phrase> = ' + txt +';';
+            recognition = new SpeechRecognition();
+            var speechRecognitionList = new SpeechGrammarList();
+            speechRecognitionList.addFromString(grammar, 1);
+            recognition.grammars = speechRecognitionList;
+            recognition.lang = language;
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.start();
+
+            var speechResult = "";
+
+            recognition.onresult = function(event) {
+                speechResult = event.results[0][0].transcript;
+                // console.log('Speech received: ' + speechResult + '.');
+
+                // console.log('Confidence: ' + event.results[0][0].confidence);
+            }
+
+            recognition.onstart = function() {
+                //addTempLine("log-answer", "icon-answer");
+                // console.log("Recognition started.");
+            }
+
+            recognition.onend = function() {
+                 //ui
+                $("body")
+                    .removeClass("listening");
+
+                if(speechResult != ""){
+                    addLine(speechResult, "log-answer", "icon-answer");
+                    send(speechResult);
+                }
+
+                // console.log("Recognition stopped.");
+            }
+
+            recognition.onspeechend = function() {
+                recognition.stop();
+
+                // console.log("Speech stopped.");
+            }
+
+            recognition.onerror = function(event) {
+                //ui
+                $("body")
+                    .removeClass("listening");
+
+                console.log('Error occurred in recognition: ' + event.error);
+            }
+        }
+    }
+
+    function listenCallback(data){
+        // console.log(data);
+
+        var $input_wrap = $("#input_wrap");
+
+        //ui
+        $("body")  
+            .removeClass("listening");
+        
+        if(data != ""){
+            var obj = JSON.parse(data);
+
+            if(obj.results){
+                speechResult = obj.results[0].alternatives[0].transcript;
+                
+                // console.log('Speech received: ' + speechResult + '.');
+            
+                addLine(speechResult, "log-answer", "icon-answer");
+                send(speechResult);
+            } else {
+                
+            }
+        } 
+
+        // console.log("Recognition stopped.");
+    }
+
+    function stopListen(){
+        if(isApp == true){             //App
+            var parameters = {
+                method: "StopListen",
+                parameters: {
+                }
+            };  wrapperCall(parameters);
+        } else {                                //js
+            if(recognition){
+                recognition.abort();
+                recognition = undefined;
+            }
+        }
+    }
+
+    //speak
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    var synth = window.speechSynthesis;
+    var synth_voices= [];
+    var synth_voice_index = 0;
+
+    function selectVoice(){
+        if (synth) {
+            synth_voices = synth.getVoices();
+
+            for(i = 0; i < synth_voices.length ; i++) {
+                if(synth_voices[i].lang == language){
+                    synth_voice_index = i;
+                    //break;
+                }
+            }
+        } else {
+            mute = true;
+        }
+    }
+
+    selectVoice();
+    if(window.speechSynthesis && (speechSynthesis.onvoiceschanged !== undefined)) {
+        speechSynthesis.onvoiceschanged = selectVoice;
+    }
+
+    var speakcallback;                      //With this wrapper callback structure you can only have one
+    function doSpeakCallback(ignore_listen) {
+        if(speakcallback){
+            var fn = speakcallback;
+            speakcallback = undefined;
+            fn(ignore_listen);
+        }
+    }    
+
+    function speak(txt, callback){
+
+        doSpeakCallback(true);
+        speakcallback = callback;
+
+        if(mute || replay){
+            doSpeakCallback(true);
+        } else {
+            if(isApp == true){                      //App
+                var parameters = {
+                    method: "Speak",
+                    parameters: {
+                        txt: txt,
+                    },
+                    callback: "speakCallback"
+                };  wrapperCall(parameters);
+            } else {                                //js
+                var utterThis = new SpeechSynthesisUtterance(txt);
+                utterThis.voice = synth_voices[synth_voice_index];
+                utterThis.pitch = 1;
+                utterThis.rate = 1;
+
+                synth.speak(utterThis);
+
+                //polling seems more stable than events..
+                var interval = setInterval(function(){
+                    if(!synth.speaking){
+                        clearInterval(interval);
+
+                        // console.log("Synthesis finished.");
+                        synth.cancel();
+                        doSpeakCallback();
+                    }
+                }, 1000);
+
+                utterThis.onstart = function(event) {
+                    // console.log("Synthesis start.");
+                }
+            }
+        }
+    }
+
+    function stopSpeaking(){
+        // console.log("Synthesis cancel.");
+        if (synth) {
+            synth.cancel();
+        }
+        doSpeakCallback(true);
+    }
+
+    function speakCallback(){
+        // console.log("App synthesis finished.");
+        if (synth) {
+            synth.cancel();
+        }
+        doSpeakCallback();
+    }
+
+    //wrapper util
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    function wrapperCall(parameters) {
+        if (navigator.appVersion.indexOf("Win") == -1 && ( (navigator.userAgent.match(/iPhone/i)) || (navigator.userAgent.match(/iPod/i)) || (navigator.userAgent.match(/iPad/i)) ) ) {
+                var temp = "fake";
+                temp += ".:{$}:." +escape(JSON.stringify(parameters));
+            
+                var iframe = document.createElement("IFRAME");
+                iframe.setAttribute("src", temp);
+                document.documentElement.appendChild(iframe);
+                iframe.parentNode.removeChild(iframe);
+                iframe = null;
+        } else {
+            if (navigator.appVersion.indexOf("Win") != -1) {
+
+                var temp = JSON.stringify(parameters);
+
+                window.external.Notify(temp);
+            } else {
+                var temp = escape(JSON.stringify(parameters));
+
+                alert(temp);
+            }
+        }
+    }
+    
+    //other util
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+
+    //normal save 
+    function saveKey(key, value){
+        if(typeof(Storage) !== "undefined") {
+            sessionStorage[key] = value;
+        }
+    }
+
+    //normal load
+    function loadKey(key){
+        if(typeof(Storage) !== "undefined") {
+            return sessionStorage[key];
+        }
+    }
+
+    function getQueryParams(qs) {
+        qs = qs.split('+').join(' ');
+
+        var params = {},
+            tokens,
+            re = /[?&]?([^=]+)=([^&]*)/g;
+
+        while (tokens = re.exec(qs)) {
+            params[decodeURIComponent(tokens[1])] = decodeURIComponent(tokens[2]);
+        }
+
+        return params;
+    }
+
+    //chat bot
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    var last_session = null;
+    var current_hints = [];
+    function clearLog() {
+        var $log = $("#log");
+        $log.empty();
+    }
+    function addQuestionTag(questionID, uniqueNo) {
+        $("<div></div>")
+            .addClass("log-line-question-marker")
+            .attr("questionid", questionID)
+            .attr("uniqueno", uniqueNo)
+            .appendTo($("#log"));
+    }
+    function scrollUp() {
+        var $log = $("#log");
+        $log.stop();
+        var o = $log[0].scrollHeight - $log.innerHeight();
+        $log.animate({
+            scrollTop: o
+        }, 500, function() {
+            var $log_filler = $("#log_filler");
+
+            var filler_height = $log_filler.outerHeight(true);
+
+            //calculate  all childrens height
+            var content_height = -filler_height;
+            $log.children().each(function(){
+                var $this = $(this);
+
+                content_height += $this.outerHeight(true);
+            });
+
+            //check needed size
+            var needed = $log.innerHeight() - content_height;
+            if(needed < 0)
+                needed = 0;
+
+            //update real div
+            if(needed < filler_height){
+                //set
+                $log_filler.height(needed);
+
+                //update
+                filler_height = $log_filler.outerHeight(true);
+            }
+
+            //turn on scroll when needed
+            if(filler_height == 0)
+                $log.css({
+                    "overflow":"auto"
+                });
+        });
+    }
+    function addLine(txt, aClass, aIcon, contentsMode) {
+        var $log = $("#log");
+
+        var $line;
+        if (contentsMode == "raw_html") {
+
+            $line = $("<div></div>")
+                .addClass("log-line log-line-raw")
+                .appendTo($log)
+                .html(txt);
+
+        } else {
+
+            $line = $("<div></div>")
+                .addClass("log-line " + aClass)
+                .appendTo($log);
+
+            /*
+            if(aIcon) {
+                $("<div></div>")
+                    .addClass("user-" +aIcon)
+                    .appendTo($line);;
+
+                $("<div></div>")
+                    .addClass("icon " + aIcon)
+                    .appendTo($line);
+            }
+            */
+
+            var $w = $("<div></div>")
+                .addClass("log-txt");
+            $line.append($w);
+
+            $w
+                .append(
+                    $("<div></div>")
+                        .addClass("log-txt-contents")
+                        .html(txt)
+                )
+                .append(
+                    $("<div></div>")
+                        .addClass("log-txt-button-container")
+                );
+        };
+        $log.find(".log-line.log-last-question").removeClass("log-last-question");
+        $log.find(".log-line.log-question, .log-line.log-message, .log-line.log-end").last().addClass("log-last-question");
+        scrollUp();
+        return $line;
+    }
+    function setValue(aName, aValue) {
+        var msg = JSON.stringify({
+            action: "SET",
+            objectID: aName,
+            objectVal: aValue
+        });
+        send(msg);
+    }
+    function select(element) {
+        if (!element) {
+            return;
+        }
+        var $element = $(element);
+        var value;
+        if ($element.is("select")) {
+            value = $element.val();
+        } else {
+            value = $element.attr("val");
+        }
+        send('"' + value + '"');
+    }
+    function visual_select(element, doDisable) {
+        if (!element) {
+            return;
+        }
+        var multi = $(element).parents(".value_wrap").is(".value_multiple");
+        if (!multi && doDisable) {
+            $(element).parents(".value_wrap").find(".value_btn_selected").removeClass("value_btn_selected");
+        }
+
+        var value = $(element).attr("val");
+        if ($(element).hasClass("value_btn_selected")) {
+            $(element).removeClass("value_btn_selected");
+        } else {
+            $(element).addClass("value_btn_selected");
+        }
+        if (doDisable) {
+            $(element).parents(".value_wrap").addClass("value_wrap_disabled");
+            $(element).parents(".log-line").addClass("line-disabled");
+        }
+    }
+    function extraInfoClick(btnID, infoID) {
+        var $b = $("#" + infoID);
+        var $m = $("#" + btnID);
+        if ($b.is(":visible")) {
+            $b.hide();
+            $m.text("More...");
+        } else {
+            $b.show();
+            $m.text("Less...");
+            scrollUp();
+        }
+    }
+    function addBack($el, isFinalQuestion) {
+        $("<div></div>")
+            .addClass("question-back")
+            .attr("title", "Go back to the previous question")
+            .append(
+                $("<div></div>")
+                    .html("back")
+            )
+            //.append(
+            //    $("<div><svg width='20' height='20' viewbox='0 0 20 20'><path fill='none' stroke='#ffffff' stroke-linecap='round' stroke-width='2px' d='M15 10 L5 2 M15 10 L5 18'></path></svg></div>")
+            //)
+            .appendTo($el.find(".log-txt-button-container"))
+            .click(function() {
+                //stop outputs and inputs
+                stopSpeaking();
+                stopListen();
+
+                send("\"back\"");
+            });
+    }
+    function addNext($el, disabled) {
+        $("<div></div>")
+            .addClass("question-next" + (disabled ? " question-next-disabled" : ""))
+            .attr("title", "Submit Answer")
+            .append(
+                $("<div></div>")
+                    .html("next")
+                    //.append(
+                    //    $("<div style='display: inline-block; vertical-align: middle; line-height: normal;'><svg width='20' height='20' viewbox='0 0 20 20'><path fill='none' stroke='#ffffff' stroke-linecap='round' stroke-width='2px' d='M15 10 L5 2 M15 10 L5 18'></path></svg></div>")
+                    //)
+            )
+            //.append(
+            //     $("<div><svg width='20' height='20' viewbox='0 0 20 20'><path fill='none' stroke='#ffffff' stroke-linecap='round' stroke-width='2px' d='M15 10 L5 2 M15 10 L5 18'></path></svg></div>")
+            //)
+            .appendTo($el.find(".log-txt-button-container"))
+            .click(function() {
+                $el.find(".next_btn").click();
+            });
+        if ($("#log .log-has-inputs").length == 0) {
+            $el.addClass("log-first-input");
+        }
+        $el.addClass("log-has-inputs");
+    }
+    function addMenu($el) {
+        var $c = $el.find(".log-txt-button-container");
+
+        var closed = "<svg width='10' height='30' viewBox='0 0 10 30'><circle cx='5' cy='4' r='2.5' stroke='none' fill='#333333'></circle><circle cx='5' cy='15' r='2.5' stroke='none' fill='#333333'></circle><circle cx='5' cy='26' r='2.5' stroke='none' fill='#333333'></circle></svg>";
+        var open = "<svg width='10' height='30' viewBox='0 0 10 10'><path stroke='#333333' stroke-width='2' fill='none' d='M1 1 L9 9 M9 1 L1 9'></path></svg>";
+
+        var $bw = $("<div></div>")
+            .addClass("question-menuwrap")
+            .css("display", "none")
+            .appendTo($c);
+
+        var $bc = $("<div></div>")
+            .addClass("question-menucontainer")
+            .appendTo($bw);
+
+        var added_item = false;
+
+        if (chat_settings && $.isArray(chat_settings.menu)) {
+            for (var c = 0; c < chat_settings.menu.length; c++) {
+                $("<div></div>")
+                    .html(chat_settings.menu[c].title)
+                    .attr("idx", c)
+                    .addClass("question-menuitem")
+                    .appendTo($bc)
+                    .click(function() {
+                        var c = parseInt($(this).attr("idx"), 10);
+                        chat_settings.menu[c].click();
+                        $c.find(".question-menubtn").click(); // hide menu
+                    });
+                added_item = true;
+            }
+        }
+
+        if (!chat_settings || !chat_settings.hasOwnProperty("include_exit") || chat_settings.include_exit) {
+            $("<div></div>")
+                .text("Exit")
+                .addClass("question-menuitem")
+                .appendTo($bc)
+                .click(function() {
+                    send("exit");
+                });
+            added_item = true;
+        }
+
+        if (added_item) {
+            $("<div></div>")
+                .addClass("question-menubtn")
+                .addClass("closed")
+                .html(closed)
+                .appendTo($c)
+                .click(function() {
+                    var $this = $(this);
+
+                    if ($this.hasClass("open") == true) {
+                        $this.removeClass("open")
+                        $this.addClass("closed");
+
+                        $bw.hide();
+                        $(this).html(closed);
+                    } else {
+                        $this.addClass("open")
+                        $this.removeClass("closed");
+
+                        $bw.show();
+                        $(this).html(open);
+                    }
+                });
+        }
+    }
+    function addSoundButtons($el, noRecording) {
+        if(showSoundControls){
+            $("<div></div>")
+                .addClass("speaker")
+                .on("click", function() {
+                    if(mute  == true){
+                        mute = false;
+
+                        //save
+                        saveKey("mute","false");
+
+                        //looks
+                        updateMuteBtn();
+                    } else {
+                        mute = true;
+
+                        //save
+                        saveKey("mute","true");
+
+                        //stop
+                        stopSpeaking();
+
+                        //looks
+                        updateMuteBtn();
+                    }
+                })
+                .appendTo($el.find(".log-txt-button-container"));
+
+            updateMuteBtn();
+            function updateMuteBtn(){
+                var $speaker = $(".speaker");
+
+                // console.log("Mute: " +mute +" " +$speaker.length);
+
+                if(mute){
+                    //looks
+                    $speaker.html("");
+                    $speaker
+                        .append(
+                            $("<img />")
+                                .attr("src", "images/speaker_mute.svg")
+                        );
+
+                    $("#input_wrap")
+                        .addClass("muted");
+                } else {
+                    //looks
+                    $speaker.html("");
+                    $speaker
+                        .append(
+                            $("<img />")
+                                .attr("src", "images/speaker.svg")
+                        );
+
+                    $("#input_wrap")
+                        .removeClass("muted");
+                }
+            }
+
+            if (!noRecording) {
+                $("<div></div>")
+                    .addClass("recording")
+                    .append(
+                        $("<div></div>")
+                            .addClass("recording_circle_back_container")
+                            .append(
+                                $("<div></div>")
+                                    .addClass("recording_circle_back")
+                            )
+                    )
+                    .append(
+                        $("<div></div>")
+                            .addClass("recording_circle")
+                    )
+                    .appendTo($el.find(".log-txt-button-container"));
+
+                $("<div></div>")
+                    .addClass("microphone")
+                    .attr("title", "Speak")
+                    .html(
+                        $("<div></div>")
+                            .addClass("microphone_circle")
+                    )
+                    .appendTo($el.find(".log-txt-button-container"))
+                    .click(function() {
+                        stopSpeaking();
+                        listen();
+                    });
+            }
+        }
+    }
+    function send(txt) {
+        //rest
+        $("#input_wrap_disable").show();
+        $(":focus").blur();
+        $("#txt_input").val("");
+
+        //do stuff
+        var aObj = {};
+        if (txt != undefined) {
+            aObj.input = txt;
+        } else {
+            // startup. parse URL looking for pre-supplied inputs
+            aObj.inputs = [];
+
+            for(var key in query_params){
+                if(query_params.hasOwnProperty(key)){
+                    if(key != "p" && key != "listen"){
+                        aObj.inputs.push({name: key, value: query_params[key]});
+                    }
+                }
+            }
+
+            if(aObj.inputs.length < 1)
+                delete aObj.inputs;
+            
+            // pre-supply initial utterance
+            if (chat_settings.initial_utterance_value) {
+                aObj.utterance = chat_settings.initial_utterance_value;
+            }
+        }
+        if (last_session) {
+            aObj.session = last_session;
+        }
+        // console.log(aObj);
+        xrkb_chat(aObj, function(d) {
+            // console.log(d);
+            var c;
+            var $log = $("#log");
+            $log.find(".log-error").remove(); // remove any previous errors
+            if (!d.ok) {
+                addLine(d.error, "log-error", "icon-error");
+                // enable last input
+                $log.find(".log-line.log-last-question .value_wrap.value_wrap_disabled").removeClass("value_wrap_disabled");
+                $log.find(".log-line.log-last-question.line-disabled").removeClass("line-disabled");
+                $log.find(".log-line.log-last-question .value_wrap input").focus();
+                //
+                if (!replay) {
+                    speak(d.error, function(ignore_listen){
+                        //listen
+                        if(!ignore_listen && automaticListen)
+                            listen("");
+                    });
+                }
+            } else if (d.mode == "next") {
+                $log.find(".log-line.log-last-question .question-next").click();
+            } else {
+                $("#input_wrap_disable").hide();
+
+                if (d.prevSpecial == "restart") {  
+                    var $log_filler = $("#log_filler");
+
+                    $log.children().each(function() {
+                        if (!$(this).is("#log_filler, .log-intro")) {
+                            $(this).remove();
+                        }
+                    });
+
+                    $log_filler
+                        .height($log.innerHeight());
+                }
+
+                var previous = "";
+
+                if (d.session) {
+                    last_session = d.session;
+                }
+                if (d.hints) {
+                    current_hints = d.hints;
+                } else {
+                    current_hints = [];
+                }
+                var $p;
+                var uno = "";
+                if (d.previousQuestionID) {
+                    uno = d.previousUniqueNo ? "[uniqueno=" + d.previousUniqueNo + "]" : "";
+                    $p = $log.find(".log-question[questionid=" + d.previousQuestionID + "]" + uno).next();
+                    while ($p.length == 1) {
+                        if ($p.hasClass("log-answer")) {
+                            // $p.fadeOut(2000);
+                        } else {
+                            $p.remove();
+                        }
+                        $p = $p.next();
+                    }
+                } else if (d.questionID) {
+                    uno = d.uniqueNo ? "[uniqueno=" + d.uniqueNo + "]" : "";
+                    $p = $log.find(".log-question[questionid=" + d.questionID + "]" + uno).next();
+                    while ($p.length == 1) {
+                        if ($p.hasClass("log-answer")) {
+                            // $p.fadeOut(2000);
+                        } else {
+                            $p.remove();
+                        }
+                        $p = $p.next();
+                    }
+                }
+                if (d.previous) {
+                    previous += d.previous +". ";
+                    // ok, we have just answered something by text, look back for last question and select if appropriate
+                    if (d.hasOwnProperty("previousValue")) {
+                        uno = d.previousUniqueNo ? "[uniqueno=" + d.previousUniqueNo + "]" : "";
+                        var $q = $log.find(".log-question[questionid=" + d.previousQuestionID + "]" + uno);
+                        var $lv = $q.find(".value_btn[val='" + d.previousValue + "']");
+                        if ($lv.length > 0) {
+                            visual_select($lv.get(0), true); // visual feedback
+                        } else if (d.previousValue !== "") {
+                            $lv = $q.find(".numeric_input");
+                            if ($lv.length > 0) {
+                                // numeric input
+                                $lv.val(d.previousValue);
+                            } else {
+                                $lv = $q.find(".text_input, .upload_input");
+                                if ($lv.length > 0) {
+                                    // text input
+                                    $lv.val(d.previousValue);
+                                } else {
+                                    $lv = $q.find(".date_day");
+                                    if ($lv.length > 0) {
+                                        // date input
+                                        var dt = new Date(d.previousValue);
+                                        $lv.val(dt.getDate());
+                                        $q.find(".date_month").val(dt.getMonth());
+                                        $q.find(".date_year").val(dt.getFullYear());
+                                    } else {
+                                        $lv = $q.find(".value_dropdown");
+                                        if ($lv.length > 0) {
+                                            // log input
+                                            $lv.val(d.previousValue);
+                                        } else {
+                                            // can't find pre-select, add dummy select
+                                            var $lv = $q.find(".log-txt");
+                                            var $w = $("<div></div>")
+                                                .addClass("value_wrap value_wrap_disabled")
+                                                .appendTo($lv);
+                                            $("<div></div>")
+                                                .addClass("value_btn value_btn_selected")
+                                                .text(d.previousValue)
+                                                .appendTo($w);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        $q.addClass("line-disabled");
+                    } else {
+                        addLine(d.previous, "log-confirm", "icon-confirm");
+                    }
+                }
+                if (d.debug) {
+                    for (c = 0; c < d.debug.length; c++) {
+                        addLine("<div class='log-debug-inner'>" + d.debug[c] + "</div>", "log-debug");
+                    }
+                }
+                var $prev;
+                if (d.questionID) {
+                    uno = d.uniqueNo ? "[uniqueno=" + d.uniqueNo + "]" : "";
+                    $prev = $(".log-line-question-marker[questionid=" + d.questionID + "]" + uno);
+                    if ($prev.length == 0) {
+                        $prev = null;
+                    } else if (d.prevSpecial == "back") {
+                        // just done a back, clear the log
+                        var $n = $prev.next();
+                        while ($n.length > 0) {
+                            $prev = $prev.add($n);
+                            $n = $n.next();
+                        }
+                        $prev.remove();
+                        $prev = null;
+                    }
+                }
+                if (d.suggest) {
+                    // $("#txt_input").val(d.suggest);
+                }
+                var $l, hasDefault;
+                var disableNext = false;
+                switch (d.mode) {
+                    case "question":
+                        var ex = "";
+                        if (d.extraoutput){
+                            // render the "more" button
+                            var did = d.questionID + "_" + d.uniqueNo;
+                            ex = d.extraoutput.replace(/\{\{(.*)\}\}/g, function myFunction(aStr, aName) {
+                                return "assets/" + aName;
+                            });
+                            var btnID = "exbtn_" + did;
+                            var divID = "_exinfo" + did;
+                            ex = '<div class="more-button" id="' + btnID + '" onclick="extraInfoClick(\'' + btnID + '\', \'' + divID + '\')">More...</div>' +
+                                '<div class="more-content" id="' + divID + '">' + ex + "</div>";
+                        }
+                        var op = $prev ? d.output : "<span class='question-title'>" + d.output + ex + "</span>";
+                        if ((d.question_mode == "multiple") && $prev) {
+                            // we have already rendered, don't re-do but re-enable
+                            $log.find(".log-question .value_wrap_disabled").last().removeClass("value_wrap_disabled");
+                            // todo : do we need to say anything here?
+                            if (!d.previousValue) {
+                                // var $l = addLine(op, "log-question", "icon-question");
+                                //
+                                addLine(op, "log-error", "icon-error");
+                                // enable last input
+                                $log.find(".log-line.log-last-question .value_wrap.value_wrap_disabled").removeClass("value_wrap_disabled");
+                                $log.find(".log-line.log-last-question.line-disabled").removeClass("line-disabled");
+                                $log.find(".log-line.log-last-question .value_wrap input").focus();
+                            }
+                            speak(d.speak, function(ignore_listen){
+                                //listen
+                                if(!ignore_listen && automaticListen)
+                                    listen(d.vocabulary.join(""));
+                            });
+                        } else {
+                            if (!$prev) {
+                                addQuestionTag(d.questionID, d.uniqueNo);
+                                if ((chat_mode == "browser") && (d.question_mode == "upload")) {
+                                    d.question_mode = "text";
+                                    addLine("File upload not supported by browser-only deployment. Just enter anything for the question below...", "log-error", "icon-error");
+                                }
+                                switch (d.question_mode) {
+                                    case "multiple":
+                                    case "select":
+                                        op += "<div class='value_wrap value_wrap_list" + (d.question_mode == "multiple" ? " value_multiple" : "") + "'>";
+                                        if (d.select_mode == "dropdown") {
+                                            op += "<select class='value_dropdown'>";
+                                            op += "<option value=''>Select a value</option>";
+                                            for (c = 0; c < d.question_values.length; c++) {
+                                                hasDefault = hasDefault | d.question_values[c].default;
+                                                op += "<option value='~" + d.question_values[c].id + "'" + (d.question_values[c].default ? " selected" : "") + ">" + d.question_values[c].text + "</option>";
+                                            }
+                                            op += "</select>";
+                                            disableNext = !hasDefault;
+                                            op += "<div class='next_btn' val='next' style='flex-shrink: 0'><svg width='20' height='20' viewbox='0 0 20 20'><path fill='none' stroke='#ffffff' stroke-linecap='round' stroke-width='2px' d='M15 10 L5 2 M15 10 L5 18'></path></svg></div>";
+                                        } else {  // object.selectMode=="buttons" _or_ multi-select
+                                            for (c = 0; c < d.question_values.length; c++) {
+                                                hasDefault = hasDefault | d.question_values[c].default;
+                                                var txt;
+                                                // if there is a caption value property, do a full "hero card" render
+                                                if (!d.question_values[c].hasOwnProperty("caption")) {
+                                                    txt = d.question_values[c].text;
+                                                } else {
+                                                    txt = '<div class="hero">' +
+                                                        '<div class="hero-title">' + d.question_values[c].caption + '</div>';
+                                                    if (d.question_values[c].description) {
+                                                        txt += '<div class="hero-descr">' + d.question_values[c].description + '</div>';
+                                                    }
+                                                    if (d.question_values[c].image) {
+                                                        txt += '<div class="hero-img"><img src="' + d.question_values[c].image + '" width="96" height="96" /></div>';
+                                                    }
+                                                    if (d.question_values[c].btntxt && d.question_values[c].btnurl) {
+                                                        txt += '<div class="hero-btn"><button onclick="window.open(\'' + d.question_values[c].btnurl + '\'); event.stopPropagation();">' + d.question_values[c].btntxt + '</button></div>';
+                                                    }
+                                                    txt += '</div>';
+                                                }
+                                                op += "<div class='value_btn" + (d.question_values[c].default ? " value_btn_selected" : "") + "' val='~" + d.question_values[c].id + "'>" + txt + "</div>"
+                                            }
+                                            disableNext = d.question_mode != "multiple" && !hasDefault;
+                                            op += "<div class='next_btn' val='next' style='padding-bottom: 5px; padding-top: 8px;'><svg width='20' height='20' viewbox='0 0 20 20'><path fill='none' stroke='#ffffff' stroke-linecap='round' stroke-width='2px' d='M15 10 L5 2 M15 10 L5 18'></path></svg></div>";
+                                        }
+                                        op += "</div>";
+                                        break;
+                                    case "number":
+                                        op += "<div class='value_wrap value_wrap_date'>";
+                                        op += "<input class='numeric_input' />";
+                                        op += "<div class='next_btn' val='next'><svg width='20' height='20' viewbox='0 0 20 20'><path fill='none' stroke='#ffffff' stroke-linecap='round' stroke-width='2px' d='M15 10 L5 2 M15 10 L5 18'></path></svg></div>";
+                                        op += "</div>";
+                                        break;
+                                    case "date":
+                                        op += "<div class='value_wrap value_wrap_num'>";
+                                        op += "<select class='date_day'>";
+                                        for (c = 1; c <= 31; c++) {
+                                            op += "<option value='" + c + "'>" + c + "</option>";
+                                        }
+                                        op += "</select>";
+                                        op += "<select class='date_month'>";
+                                        var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                                        for (c = 0; c <= 11; c++) {
+                                            op += "<option value='" + c + "'>" + months[c] + "</option>";
+                                        }
+                                        op += "</select>";
+                                        op += "<select class='date_year'>";
+                                        for (c = 1920; c <= 2020; c++) {
+                                            op += "<option value='" + c + "'>" + c + "</option>";
+                                        }
+                                        op += "</select>";
+                                        op += "<div class='next_btn' val='next'><svg width='20' height='20' viewbox='0 0 20 20'><path fill='none' stroke='#ffffff' stroke-linecap='round' stroke-width='2px' d='M15 10 L5 2 M15 10 L5 18'></path></svg></div>";
+                                        op += "</div>";
+                                        break;
+                                    case "text":
+                                        op += "<div class='value_wrap value_wrap_text' style='display: flex;'>";
+                                        op += "<input class='text_input' style='flex-grow: 1'/>";
+                                        op += "<div class='next_btn' val='next' style='flex-shrink: 0'><svg width='20' height='20' viewbox='0 0 20 20'><path fill='none' stroke='#ffffff' stroke-linecap='round' stroke-width='2px' d='M15 10 L5 2 M15 10 L5 18'></path></svg></div>";
+                                        op += "</div>";
+                                        break;
+                                    case "upload":
+                                        general_counter++;
+                                        var ident = "upload" + general_counter;
+                                        op += "<div class='value_wrap value_wrap_upload'>" +
+                                            "<span class='upload-btn'><span>Select File...</span><input type='file' class='upload-input' name='" + ident + "' /></span>" +
+                                            "<input type='hidden' class='upload_input' />" +
+                                            "<div class='upload-progress'><div class='upload-progress-bar'></div></div>" +
+                                            "<img class='upload-preview' src='' />" +
+                                            "<div class='next_btn' val='next' style='flex-shrink: 0'><svg width='20' height='20' viewbox='0 0 20 20'><path fill='none' stroke='#ffffff' stroke-linecap='round' stroke-width='2px' d='M15 10 L5 2 M15 10 L5 18'></path></svg></div>" +
+                                            "</div>";
+                                        break;
+                                }
+                            }
+
+                            $l = addLine(op, !$prev ? "log-question" : "log-error", "icon-question");
+
+                            speak(d.speak, function(ignore_listen){
+                                //listen
+                                if(!ignore_listen && automaticListen && (d.question_mode != "upload"))
+                                    listen(d.vocabulary.join(""));
+                            });
+
+                            if (!$prev) {
+                                $l.attr("questionid", d.questionID);
+                                $l.attr("uniqueno", d.uniqueNo);
+                                addSoundButtons($l, d.question_mode == "upload");
+                                addBack($l);
+                                addNext($l, disableNext);
+                                addMenu($l);
+                                scrollUp();
+                            }
+                            $l.find(".value_btn").click(function() {
+                                // select(this);    auto-select
+                                if (d.question_mode == "multiple") {
+                                    if ($(this).is(".value_btn_selected")) {
+                                        $(this).removeClass("value_btn_selected");
+                                    } else {
+                                        $(this).addClass("value_btn_selected");
+                                    }
+                                } else {
+                                    $l.find(".value_btn_selected").removeClass("value_btn_selected");
+                                    $(this).addClass("value_btn_selected");
+                                    $l.find(".next_btn").removeClass("next_btn_disabled");
+                                    $l.find(".question-next-disabled").removeClass("question-next-disabled");
+                                }
+                            });
+                            $l.find(".value_dropdown").change(function() {
+                                if ($(this).val()) {
+                                    $l.find(".question-next").removeClass("question-next-disabled");
+                                    /* auto-select
+                                    $(this).parents(".value_wrap").addClass("value_wrap_disabled");
+                                    select(this);
+                                    */
+                                } else {
+                                    $l.find(".question-next").addClass("question-next-disabled");
+                                }
+                            });
+                            $l.find("input[type=file]").fileupload({
+                                url: 'upload',
+                                maxFileSize: 999000,
+                                acceptFileTypes: /(\.|\/)(gif|jpe?g|png)$/i,
+                                dataType: 'json',
+                                add: function(e, data) {
+                                    $l.find(".upload-progress").show();
+                                    $l.find(".upload-progress-bar").css("width", "0%");
+                                    data.submit();
+                                },
+                                progressall: function (e, data) {
+                                    var progress = parseInt(data.loaded / data.total * 100, 10);
+                                    $l.find(".upload-progress-bar").css("width", progress + "%");
+                                },
+                                done: function (e, data) {
+                                    if (!data.result.ok) {
+                                        alert(data.result.error);
+                                        return;
+                                    }
+                                    $l.find(".upload-preview").attr("src", data.result.fn).show();
+                                    $l.find(".upload-progress").hide();
+                                    $l.find(".upload_input").val(data.result.fn);
+                                }
+                            });
+                            $l.find(".next_btn").click(function() {
+                                //stop outputs and inputs
+                                stopSpeaking();
+                                stopListen();
+
+                                var new_val;
+                                switch (d.question_mode) {
+                                    case "multiple":
+                                        new_val = "\"next";
+                                        $l.find(".value_btn_selected").each(function() {
+                                            new_val += "," + $(this).attr("val");
+                                        });
+                                        new_val += "\"";
+                                        break;
+                                    case "select":
+                                        if (d.select_mode == "dropdown") {
+                                            new_val = '"' + $l.find(".value_dropdown").val() + '"';
+                                        } else {
+                                            new_val = '"' + $l.find(".value_btn_selected").attr("val") + '"';
+                                            $l.find(".value_btn_selected").removeClass("value_btn_selected");
+                                        }
+                                        break;
+                                    case "number":
+                                        new_val = $.trim($l.find(".numeric_input").val());
+                                        var rx = /^[\-\+]?(?:\d*\.\d+|\d+)$/g;
+                                        if (!rx.exec(new_val)) {
+                                            var $log = $("#log");
+                                            $log.find(".log-error").remove(); // remove any previous errors
+                                            addLine("Please use numeric digits", "log-error", "icon-error");
+                                            // enable last input
+                                            $log.find(".log-line.log-last-question .value_wrap.value_wrap_disabled").removeClass("value_wrap_disabled");
+                                            $log.find(".log-line.log-last-question .value_wrap input").focus();
+                                            return;
+                                        }
+                                        break;
+                                    case "text":
+                                        new_val = $l.find(".text_input").val();
+                                        break;
+                                    case "upload":
+                                        new_val = $l.find(".upload_input").val();
+                                        break;
+                                    case "date":
+                                        var dt = new Date(parseInt($l.find(".date_year").val(), 10), parseInt($l.find(".date_month").val(), 10), parseInt($l.find(".date_day").val(), 10));
+                                        new_val = dt.toJSON();
+                                        break;
+                                    default: // multi-sel list
+                                        new_val = "\"next\"";
+                                }
+
+                                if (!d.allow_blank && !new_val) {
+                                    $l.find("input").focus();
+                                    return;
+                                }
+
+                                //disable
+                                $(this).parents(".value_wrap").addClass("value_wrap_disabled");
+
+                                //next
+                                send(new_val);
+                            });
+                            var $i = $l.find(".numeric_input, .text_input, .upload_input");
+                            $i.keypress(function(ev) {
+                                if (ev.which == 13) {
+                                    $l.find(".next_btn").click();
+                                    ev.preventDefault();
+                                }
+                            });
+                            if (d.hasOwnProperty("default")) {
+                                $i.val(d.default);
+                                if (d.question_mode == "upload") {
+                                    $l.find(".upload-preview").attr("src", d.default).show();
+                                }
+                            }
+                            if (!isMob) {
+                                $i.focus();
+                            }
+                            var dt;
+                            if (d.hasOwnProperty("default")) {
+                                dt = new Date(d.default);
+                            } else {
+                                dt = new Date();
+                            }
+                            $l.find(".date_day").val(dt.getDate());
+                            $l.find(".date_month").val(dt.getMonth());
+                            $l.find(".date_year").val(dt.getFullYear());
+                            if (!$prev && d.autoselect) {
+                                // an auto selection has been detected by the engine
+                                switch (d.question_mode) {
+                                    case "multiple":
+                                        // todo
+                                        break;
+                                    case "select":
+                                        if (d.select_mode == "dropdown") {
+                                            $l.find(".value_dropdown").val("~" + d.autoselect);
+                                        } else {
+                                            $l.find(".value_btn[val='~" + d.autoselect + "']").click();
+                                        }
+                                        break;
+                                    case "number":
+                                        $l.find(".numeric_input").val(d.autoselect);
+                                        break;
+                                    case "text":
+                                        $l.find(".text_input").val(d.autoselect);
+                                        break;
+                                    case "upload":
+                                        //  n/a
+                                        break;
+                                    case "date":
+                                        dt = new Date(d.autoselect);
+                                        $l.find(".date_day").val(dt.getDate());
+                                        $l.find(".date_month").val(dt.getMonth());
+                                        $l.find(".date_year").val(dt.getFullYear());
+                                        break;
+                                }
+                                if (d.autoselectcontinue) {
+                                    $l.find(".next_btn").click();
+                                }
+                            }
+                        }
+
+                        break;
+                    case "hint":
+                        addLine(d.output, "log-question", "icon-question");
+
+                        //speak
+                        speak(d.speak, function(ignore_listen){
+                            //done
+                        });
+
+                        break;
+                    case "message":
+                        addLine(d.output, "log-message", "icon-question", false);
+
+                        //speak
+                        speak(d.speak, function(ignore_listen){
+                            if (!replay) {
+                                send("");
+                            }
+                        });
+
+                        break;
+
+                    case "pause":
+                    case "custom_question":
+                        if (d.mode == "custom_question") {
+                            addQuestionTag(d.questionID, d.uniqueNo);
+                        }
+                        var msg;
+                        if (typeof d.output == "string") {
+                            msg = JSON.parse(d.output);
+                        } else {
+                            msg = d.output;
+                        }
+                        var s;
+                        switch (msg.mode) {
+                            case "upload":
+                                s = msg.prompt;
+                                general_counter++;
+                                var ident = "upload" + general_counter;
+                                s += "<div class='value_wrap'>" +
+                                    "<span class='upload-btn'><span>Select File...</span><input type='file' class='upload-input' name='" + ident + "' /></span>" +
+                                    "<input type='text' id='" + ident + "' value='' />" +
+                                    "<div class='upload-progress'><div class='upload-progress-bar'></div></div>" +
+                                    "<img class='upload-preview' src='' />" +
+                                    "</div>";
+                                $l = addLine(s, "log-question", "icon-question");
+                                $l.find("input[type=file]").fileupload({
+                                    url: 'upload',
+                                    maxFileSize: 999000,
+                                    acceptFileTypes: /(\.|\/)(gif|jpe?g|png)$/i,
+                                    dataType: 'json',
+                                    add: function(e, data) {
+                                        $l.find(".upload-progress").show();
+                                        $l.find(".upload-progress-bar").css("width", "0%");
+                                        data.submit();
+                                    },
+                                    progressall: function (e, data) {
+                                        var progress = parseInt(data.loaded / data.total * 100, 10);
+                                        $l.find(".upload-progress-bar").css("width", progress + "%");
+                                    },
+                                    done: function (e, data) {
+                                        if (!data.result.ok) {
+                                            alert(data.result.error);
+                                            return;
+                                        }
+                                        $l.find(".upload-preview").attr("src", "uploads/" + data.result.fn).show();
+                                        $l.find(".upload-progress").hide();
+                                        $l.find("#" + ident).val(data.result.fn);
+                                    }
+                                });
+                                addBack($l);
+                                addNext($l, disableNext);
+                                addMenu($l);
+                                scrollUp();
+                                //
+                                $l.find(".question-next").click(function() {
+                                    //stop outputs and inputs
+                                    stopSpeaking();
+                                    stopListen();
+                                
+                                    //disable
+                                    $(this).parents(".value_wrap").addClass("value_wrap_disabled");
+
+                                    //next
+                                    send("");
+                                });
+                                //speak
+                                if (msg.speak) {
+                                    speak(msg.speak, function(ignore_listen){
+                                        // nothing to do at end of speech
+                                    });
+                                }
+                                break;
+                            default:
+                                var line_mode;
+                                if (msg.isHTML && !msg.includeBubble) {
+                                    line_mode = "raw_html";
+                                }
+                                s = msg.contents;
+                                // s = s.replace(/\{.*?\}/g, "assets");
+                                $l = addLine(s, "log-question", "icon-question", line_mode);
+                                if ($.isPlainObject(msg.css)) {
+                                    $l.find(".log-txt").css(msg.css);
+                                }
+                                if (msg.hideInput) {
+                                    $("#input_wrap_disable").show();
+                                    $(":focus").blur();
+                                }
+                                if (d.questionID) {
+                                    $l.attr("questionid", d.questionID);
+                                    $l.attr("uniqueno", d.uniqueNo);
+                                    addBack($l);
+                                }
+
+                                /*
+                                if (!msg.autoContinue) {
+                                    addNext($l, false);
+                                    $l.find(".question-next").click(function() {
+                                        //stop outputs and inputs
+                                        stopSpeaking();
+                                        stopListen();
+                                    
+                                        //disable
+                                        $(this).parents(".value_wrap").addClass("value_wrap_disabled");
+
+                                        //next
+                                        send("");
+                                    });
+                                }
+                                */
+
+                                //speak
+                                if (!replay) {
+                                    speak(d.speak, function(ignore_listen){
+                                        if (true /* msg.autoContinue */) {
+                                            send("");
+                                        }
+                                    });
+                                }
+                        }
+                        break;
+
+                    case "end":
+                        var $l = $(".log-line").last();
+                        var doListen = false;
+                        if ($l.is(".log-message")) {
+                            // if the last interaction was a message just add a back to it
+                            doListen = finalListen && automaticListen;
+                        } else {
+                            $l = addLine("This concludes the consultation", "log-end");
+
+                            //speak
+                            speak("This concludes the consultation", function(ignore_listen){
+                                if(finalListen && !ignore_listen && automaticListen)
+                                    listen(d.vocabulary.join(""));                            
+                            });
+                        }
+                        if (finalListen) {
+                            addSoundButtons($l);
+                        }
+                        addBack($l, true);
+
+                        if(doListen)
+                            listen(d.vocabulary.join(""));
+
+                        break;
+
+                    case "quit":
+                        //window.history.back(); // go back (assume to the launch screen)
+                        document.location = "/";
+
+                        break;
+
+                    default:
+                        addLine(JSON.stringify(d), "log-error", "icon-error");
+                }
+
+                //
+                if (d.mode != "end") {
+                    var $questions = $(".log-line.log-question[questionid]");
+                    $questions.last().find(".value_wrap_disabled").removeClass("value_wrap_disabled");
+                }
+            }
+            if (replay) {
+                var i = replay.shift();
+                if (replay.length == 0) {
+                    replay = null;
+                }
+                send(i);
+            }
+        });
+    }
+
+    function getReplayString() {
+        return JSON.stringify(input_history);
+    }
+
+    function buildReplayURL() {
+        return document.location.origin + document.location.pathname + document.location.search + "#" + encodeURIComponent(getReplayString());
+    }
+
+    $(document).ready(function() {
+        if (chat_settings && chat_settings.footer) {
+            $("#xr_footer").html(chat_settings.footer);
+        }
+        if (chat_settings && chat_settings.hasOwnProperty("allow_print") && !chat_settings.allow_print) {
+            $("#print").hide();
+        }
+        $("#print").click(function() {
+            var w = window.open();
+            $("#log input").each(function() {
+                $(this).attr("value", $(this).val());
+            });
+            $("#log select").each(function() {
+                $(this).find("option[value='" + $(this).val() + "']").attr("selected", "selected");
+            });
+            var html = $("#log").html();
+            var $d = $(w.document.body);
+            var u = document.location.href;
+            var c = u.lastIndexOf("/");
+            u = u.substr(0, c + 1);
+            w.document.head.innerHTML = '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />' +
+                '<title>FS Demo Sep 17</title>' +
+                '<style>' + 
+                'body{font-family: arial;}' +
+                '.log-line{display: flex; align-items: center; align-self: flex-start; margin: 10px; page-break-inside: avoid;}' +
+                '.log-line .log-txt {padding: 30px; color: #000; border: 2px solid #000; flex-grow: 1;}' +
+                '.value_wrap {display: flex; flex-wrap: wrap; margin: 10px 0 0 0;}' +
+                '.value_btn, .next_btn, .numeric_input, .text_input, .date_day, .date_month, .date_year, .value_dropdown {padding: 10px; margin: 5px 10px 5px 0; background-color: #fff; color: #000; border: 2px solid #000;}' +
+                '.numeric_input, .text_input, .date_day, .date_month, .date_year, .value_dropdown {border: 2px solid #000; color: #000; font-size: 15px;}' +
+                '.text_input{width: 450px;}' +
+                '.value_btn.value_btn_selected{background-color: #000; color: #fff;}' +
+                '.log-txt-button-container{display: none;}' +
+                '.more-button, .more-content{display: none;}' +
+                '</style>';
+            html = html.replace(/assets\//ig, u + "assets/");
+            w.document.body.innerHTML = html;    // $d.html(html);     this is better but EDGE does not support it
+            $d.find("#log_filler").remove();
+            $d.find(".log-line-question-marker").remove();
+            $d.find(".user-icon-question").remove();
+            $d.find(".icon.icon-question").remove();
+            $d.find(".question-back").remove();
+            $d.find(".next_btn").remove();
+            // w.print();
+        });
+        $("#txt_input").keypress(function(ev) {
+            if (ev.which == 13) {
+                var s = $.trim($(this).val());
+                if (s.length > 0) {
+                    // manual disable
+                    $("#log").find(".log-line.log-last-question .value_wrap").addClass("value_wrap_disabled");
+                    send(s);
+                }
+            }
+        });
+
+        if (!window.hasOwnProperty("XRchatMode") || (XRchatMode != "browser")) {
+            //$("#input_wrap").css("display", "flex");
+        }
+
+        if (replay_sessionID) {
+            loadSession(replay_sessionID, function(history) {
+                replay = history;
+                send();
+            });
+        } else {
+            if (chat_settings.initial_utterance) {
+                var iu = "<span class='question-title'>" + (chat_settings.initial_utterance_prompt ? chat_settings.initial_utterance_prompt : "Supply a sample initial utterance" ) + "</span>" +
+                    "<div class='value_wrap value_wrap_text' style='display: flex;'>" +
+                    "<input class='text_input' style='flex-grow: 1'/>" +
+                    "</div>";
+                var $l = addLine(iu, "log-question", "icon-question");
+                $("<div></div>")
+                    .addClass("question-next")
+                    .attr("title", "Submit Answer")
+                    .append(
+                        $("<div></div>")
+                            .html("start")
+                    )
+                    .appendTo($l.find(".log-txt-button-container"))
+                    .click(function() {
+                        chat_settings.initial_utterance_value = $l.find(".text_input").val();
+                        send();
+                    });
+                $l.find(".text_input").focus();
+            } else {
+                send();
+            }
+        }
+    });
+</script>
+
+</head>
+<body>
+
+<div id="page">
+    <div id="page_container">
+        <div id="log_container">
+            <div id="log">
+            </div>
+        </div>
+        <div id="input_wrap">
+            <input id="txt_input" />
+        </div>
+    </div>
+    <div id="page_footer">
+        <div style="flex-grow: 1;" id="xr_footer"><a href="http://www.xpertrule.com" target="_blank">&copy;XpertRule Software Ltd. 2017 V2.0</a></div>
+        <div style="flex-grow: 1; text-align: right;"><a href="#" id="print"><img src="images/print.svg" height="16" /> Print</a></div>
+    </div>
+</div>
+
+</body>
+</html>

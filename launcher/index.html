@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>XpertRule Decision Factory Multi-KB App</title>
+
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0, target-densitydpi=device-dpi"/>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+
+    <link rel="SHORTCUT ICON" href="images/favicon.png" />
+    <link rel="apple-touch-icon" href="images/appleicon.png" />
+
+    <link rel="stylesheet" type="text/css" href="semanticUI/semantic.min.css">
+    <link rel="stylesheet" type="text/css" href="mkb.css?5">
+
+    <script type="text/javascript" src="scripts/jquery-3.3.1.min.js"></script>
+    <script type="text/javascript" src="semanticUI/semantic.min.js"></script>
+    <script type="text/javascript" src="mkb.js"></script>
+
+    <script>
+        /* -------------------------------------------------------------------- */
+        /* ---------------------- touch points be here ------------------------ */
+        /* -------------------------------------------------------------------- */
+        function doLogin(email, password, successCB, failCB) {
+            // code required here to call the server and valid email & password
+            if (email != "") {
+                var userObj = {
+                    email: email,
+                    access: "user"
+                };
+                successCB(userObj);
+            } else {
+                failCB("The supplied details are not valid");
+            }
+        }
+        function doLogout(successCB, failCB) {
+            // code required here to call the server
+            var userInfo = mkb.userInfo();
+            console.log(userInfo.email);
+            successCB();
+        }
+        function doResetPwd(email, successCB, failCB) {
+            // code required here to send reset email to "email" with one/limited time access code
+            successCB();
+        }
+        function doPopulateKBs(successCB, failCB) {
+            // populate the list
+            successCB({
+                items: [
+                    {
+                        folder: "kb2",
+                        name: "Pension Advisor",
+                        description: "Knowledge base 2",
+                        image: "xrkb/assets/pas_logo.png",
+                        access: [""]
+                    },
+                    {
+                        folder: "kb1",
+                        name: "FS Demo",
+                        description: "Knowledge base 1",
+                        image: "icon.png",
+                        access: [""]
+                    },
+                    {
+                        folder: "kb3",
+                        name: "KB #3",
+                        description: "Knowledge base 3",
+                        image: "images/icon.png",
+                        access: ["user"]
+                    }
+                ]
+            });
+            // failCB("woops");
+        }
+        function doSignup(email, password, successCB, failCB) {
+            // code required here to send signup email to supplied address
+            successCB();
+        }
+        /* -------------------------------------------------------------------- */
+        /* -------------------------------------------------------------------- */
+        /* -------------------------------------------------------------------- */
+        function viewChange(newView) {
+            switch (newView) {
+                case "list":
+                    var user = mkb.userInfo();
+                    if (user) {
+                        $("#list_login").hide();
+                        $("#list_signup").hide();
+                        $("#list_logout").show();
+                        $("#list_user_info").text(user.email).show();
+                    } else {
+                        $("#list_login").show();
+                        $("#list_signup").show();
+                        $("#list_logout").hide();
+                        $("#list_user_info").hide();
+                    }
+                    if (mkb.kbs.length == 0) {
+                        // app list not yet loaded!
+                        $("#list_container").addClass("loading");
+                        mkb.populateKBs(function() {
+                            $("#list_container").removeClass("loading");
+                            populateList();
+                        }, function(errorMsg) {
+                            $("#list_container").removeClass("loading");
+                        });
+                    } else {
+                        populateList();
+                    }
+                    break;
+                case "login":
+                    $("#login_error").hide();
+                    $("#login_email").val("");
+                    $("#login_password").val("");
+                    break;
+                case "signup":
+                    $("#signup_error").hide();
+                    $("#signup_response").hide();
+                    $("#signup_email").val("");
+                    $("#signup_password").val("");
+                    $("#signup_password2").val("");
+                    break;
+                case "forgot":
+                    $("#forgot_error").hide();
+                    $("#forgot_response").hide();
+                    $("#forgot_email").val("");
+                    $("#forgot_go").show();
+                    break;
+            }
+        }
+        function populateList() {
+            mkb.populateList($("#list_container"));
+        }
+        $(function() {
+            // initialize the multi-kb system
+            mkb.startup(
+                "welcome",     // main start view name
+                viewChange,    // callback to be called on a view change
+                doLogin,       // callback to be called to validate a user credentials
+                doLogout,      // callback to be called to log a user out
+                doResetPwd,    // callback to issue password reset
+                doPopulateKBs, // callback to populate the KB list
+                doSignup       // callback to perform signup
+            );
+            // listen for resize changes (list view)
+            window.addEventListener("resize", function() {
+                if (mkb.currentView == "list") {
+                    populateList();
+                }
+            }, false);
+            // ** welcome screen interactions
+            $("#welcome_continue").click(function() {
+                mkb.changeView("list");
+            });
+            $("#welcome_contact").click(function() {
+                mkb.changeView("conditions");
+            });
+            // ** list screen interactions
+            $("#list_back").click(function() {
+                mkb.changeView("welcome");
+            });
+            $("#list_login").click(function() {
+                mkb.changeView("login");
+            });
+            $("#list_signup").click(function() {
+                mkb.changeView("signup");
+            });
+            $("#list_logout").click(function() {
+                mkb.performLogout(
+                    function() {
+                        // all is good
+                        mkb.changeView("list");
+                    }, function(errorMsg) {
+                        // woops, invalid login
+                        console.log(errorMsg);
+                    }
+                );
+            });
+            // ** login screen interactions
+            $("#login_back").click(function() {
+                mkb.changeView("list");
+            });
+            $("#login_go").click(function() {
+                $("#login_segment").addClass("loading");
+                mkb.performLogin(
+                    $("#login_email").val(),
+                    $("#login_password").val(),
+                    function() {
+                        // all is good
+                        $("#login_segment").removeClass("loading");
+                        mkb.changeView("list");
+                    }, function(errorMsg) {
+                        // woops, invalid login
+                        $("#login_segment").removeClass("loading");
+                        $("#login_error p").html(errorMsg);
+                        $("#login_error").show();
+                    }
+                );
+            });
+            $("#login_forgotpwd").click(function() {
+                mkb.changeView("forgot");
+            });
+            // ** forgotten password screen interactions
+            $("#forgot_go").click(function() {
+                $("#forgot_response").hide();
+                $("#forgot_error").hide();
+                $("#forgot_segment").addClass("loading");
+                mkb.resetPwd(
+                    $("#forgot_email").val(),
+                    function() {
+                        // all is good
+                        $("#forgot_segment").removeClass("loading");
+                        $("#forgot_response").show();
+                        $("#forgot_go").hide();
+                    }, function(errorMsg) {
+                        // woops
+                        $("#forgot_segment").removeClass("loading");
+                        $("#forgot_error p").html(errorMsg);
+                        $("#forgot_error").show();
+                    }
+                );
+            });
+            $("#forgot_back").click(function() {
+                mkb.changeView("login");
+            });
+            // ** signup screen interactions
+            $("#signup_back").click(function() {
+                mkb.changeView("list");
+            });
+            $("#signup_go").click(function() {
+                $("#signup_response").hide();
+                $("#signup_error").hide();
+                $("#signup_go").show();
+                $("#signup_segment").addClass("loading");
+                mkb.signup(
+                    $("#signup_email").val(),
+                    $("#signup_password").val(),
+                    $("#signup_password2").val(),
+                    function() {
+                        // all is good
+                        $("#signup_segment").removeClass("loading");
+                        $("#signup_response").show();
+                        $("#signup_go").hide();
+                    }, function(errorMsg) {
+                        // woops
+                        $("#signup_segment").removeClass("loading");
+                        $("#signup_error p").html(errorMsg);
+                        $("#signup_error").show();
+                    }
+                );
+            });
+            // ** T & C screen interactions
+            $("#conditions_back").click(function() {
+                mkb.changeView("welcome");
+            });
+        });
+    </script>
+</head>
+<body>
+    <!-- items are associated with views via "mkb-view mkb-view-xxxxxxxx" where xxxxxxxx = view name -->
+    <div class="ui container" id="mkb_wrapper">
+        <div id="mkb_header">
+            <div class="mkb-view mkb-view-list mkb-view-login mkb-view-forgot mkb-view-signup mkb-view-conditions" style="text-align: center">
+                <img src="images/logo.png" style="max-width: 100px; margin: 1em;" />
+            </div>
+        </div>
+        <div id="mkb_body">
+            <div class="mkb-view mkb-view-welcome" style="position: absolute; top: 0; left: 0; bottom: 0; right: 0; text-align: center;">
+                <div style="display: inline-block; height: 100%; vertical-align: middle;"></div>
+                <img src="images/logo.png" style="width: 100%; max-width: 200px; vertical-align: middle;" />
+            </div>
+            <div class="mkb-view mkb-view-list">
+                <div class="ui segment" id="list_container">
+                    <div class="mkb-list-tile">Tile</div>
+                </div>
+            </div>
+            <div class="mkb-view mkb-view-login">
+                <div class="ui header">Sign In</div>
+                <div class="ui segment" id="login_segment">
+                    <div class="ui form">
+                        <div class="field">
+                            <label>Email</label>
+                            <input type="text" id="login_email" placeholder="me@mydomain.com">
+                        </div>
+                        <div class="field">
+                            <label>Password</label>
+                            <input type="password" id="login_password">
+                        </div>
+                        <div class="ui negative message" id="login_error">
+                            <p>fail description</p>
+                        </div>
+                        <button class="ui positive button" id="login_go">Login</button>
+                        <button class="ui basic secondary tiny button" id="login_forgotpwd" style="float: right;">Forgotten Password</button>
+                    </div>
+                </div>
+            </div>
+            <div class="mkb-view mkb-view-forgot">
+                <div class="ui header">Reset Password</div>
+                <div class="ui segment" id="forgot_segment">
+                    <div class="ui form">
+                        <div class="field">
+                            <label>Email</label>
+                            <input type="text" id="forgot_email" placeholder="me@mydomain.com">
+                        </div>
+                        <div class="ui negative message" id="forgot_error">
+                            <p>fail description</p>
+                        </div>
+                        <div class="ui positive message" id="forgot_response">
+                            <p>If the email supplied is valid, there will be an email with details on resetting your password</p>
+                        </div>
+                        <button class="ui positive button" id="forgot_go">Send Email</button>
+                    </div>
+                </div>
+            </div>
+            <div class="mkb-view mkb-view-signup">
+                <div class="ui header">Sign Up</div>
+                <div class="ui segment" id="signup_segment">
+                    <div class="ui form">
+                        <div class="field">
+                            <label>Email</label>
+                            <input type="text" id="signup_email" placeholder="me@mydomain.com">
+                        </div>
+                        <div class="field">
+                            <label>Password</label>
+                            <input type="password" id="signup_password">
+                        </div>
+
+                        <div class="field">
+                            <label>Retype Password</label>
+                            <input type="password" id="signup_password2">
+                        </div>
+                        <div class="ui negative message" id="signup_error">
+                            <p>fail description</p>
+                        </div>
+                        <div class="ui positive message" id="signup_response">
+                            <p>An email has been sent to your supplied address. Please follow the directions</p>
+                        </div>
+                        <button class="ui positive button" id="signup_go">Signup</button>
+                    </div>
+                </div>
+            </div>
+            <div class="mkb-view mkb-view-conditions">
+                <div class="ui segment" id="conditions_container">
+                    <p>XpertRule&reg; Decision Factory Launcher<br />&copy;XpertRule software Ltd. 2018</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                    <p>some sample terms and conditions</p>
+                </div>
+            </div>
+        </div>
+        <div id="mkb_footer">
+            <div class="mkb-view mkb-view-welcome" style="margin-left: 0.25em; display: flex;">
+                <div style="flex-grow: 1;">
+                    <button class="ui grey basic button" id="welcome_contact">
+                        T &amp; Cs
+                    </button>
+                </div>
+                <div style="flex-shrink: 0;">
+                    <button class="positive ui button" id="welcome_continue">
+                        <i class="check circle icon"></i>Continue
+                    </button>
+                </div>
+            </div>
+            <div class="mkb-view mkb-view-list">
+                <div id="list_user_info" style="margin-bottom: 0.3em; margin-top: -0.8em; text-align: center;"></div>
+                <div style="display: flex; margin-left: 0.25em;">
+                    <div style="flex-grow: 1;">
+                        <button class="ui secondary basic button" id="list_back">
+                            <i class="angle left icon"></i>Back
+                        </button>
+                    </div>
+                    <div style="flex-shrink: 0;">
+                        <button class="ui positive basic button" id="list_signup">
+                            <i class="edit outline icon"></i>Sign Up
+                        </button>
+                    </div>
+                    <div style="flex-shrink: 0;">
+                        <button class="ui positive button" id="list_login">
+                            <i class="user icon"></i>Sign in
+                        </button>
+                    </div>
+                    <div style="flex-shrink: 0;">
+                        <button class="ui negative basic button" id="list_logout">
+                            <i class="user icon"></i>Sign out
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="mkb-view mkb-view-login" style="display: flex; margin-left: 0.25em;">
+                <button class="ui secondary basic button" id="login_back">
+                    <i class="angle left icon"></i>Back
+                </button>
+            </div>
+            <div class="mkb-view mkb-view-forgot" style="display: flex; margin-left: 0.25em;">
+                <button class="ui secondary basic button" id="forgot_back">
+                    <i class="angle left icon"></i>Back
+                </button>
+            </div>
+            <div class="mkb-view mkb-view-signup" style="display: flex; margin-left: 0.25em;">
+                <button class="ui secondary basic button" id="signup_back">
+                    <i class="angle left icon"></i>Back
+                </button>
+            </div>
+            <div class="mkb-view mkb-view-conditions" style="display: flex; margin-left: 0.25em;">
+                <button class="ui secondary basic button" id="conditions_back">
+                    <i class="angle left icon"></i>Back
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

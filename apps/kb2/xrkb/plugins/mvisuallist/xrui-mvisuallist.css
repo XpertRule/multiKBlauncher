@@ -1,0 +1,70 @@
+.xrui-mvisuallist{
+	width: 100%;
+	overflow: hidden;
+	padding: 0px 2px 5px 0px;
+}
+.xrui-mvisuallist-disabled{
+	opacity: 0.5;
+}
+.xrui-mvisuallist-invalid{
+	border: 1px solid red !important;
+}
+.xrui-mvisuallist-item{
+	width: 64px;
+	height: 64px;
+	position: absolute;
+	overflow: hidden;
+	background-position: top center;
+	background-repeat: no-repeat;
+	border: 1px solid #bbb;
+	box-shadow: 3px 3px 1px 0px #ddd;
+}
+.xrui-mvisuallist-item-caption{
+	width: 100%;
+	position: absolute;
+	text-align: center;
+	cursor: default;
+}
+.xrui-mvisuallist-item-captionbottom{
+	bottom: 0;
+}
+.xrui-mvisuallist-item-selected{
+	background-color: #080;
+	box-shadow: 2px 2px 6px #080;
+	border-color: #080;
+	color: #eee;
+	text-shadow: none;
+}
+.xrui-mvisuallist-item-invalid{
+	background-color: rgba(255,0,0,0.3);
+	opacity: 0.3;
+}
+.xrui-mvisuallist-item-selected .xrui-mvisuallist-tickimg{
+	display: block;
+}
+.xrui-mvisuallist-item.xrui-mvisuallist-rows{
+	background-position: center left;
+}
+.xrui-mvisuallist-item.xrui-mvisuallist-rows .xrui-mvisuallist-item-caption.xrui-mvisuallist-item-captionbottom{
+	width: auto;
+	top: 0;
+	left: 64px;
+	right: 64px;
+	bottom: 0;
+	text-align: left;
+}
+.xrui-mvisuallist-item.xrui-mvisuallist-rows .xrui-mvisuallist-tickimg{
+	background-position: right;
+}
+.xrui-mvisuallist-tickimg{
+	display: none;
+	background-image: url(tick.png);
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-color: rgba(0, 0, 0, 0.3);
+}

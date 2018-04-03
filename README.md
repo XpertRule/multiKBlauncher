@@ -1,2 +1,8 @@
-# multiKBlauncher
-Sample template for provisioning multiple Knowledge Bases via PhoneGap
+# XpertRule Decision Factory Multi-KB Launcher
+Sample template for provisioning multiple Knowledge Bases (from either Decision Author or Decision Factory) via PhoneGap
+
+# Customization
+See launcher/index.html for more details on the KB manifest and back-end integration
+
+---
+Copyright XpertRule Software Ltd 2018

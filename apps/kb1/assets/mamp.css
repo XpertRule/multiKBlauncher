@@ -1,0 +1,70 @@
+.report_tbl{
+	border: 1px solid ffffff;
+	font-family: Verdana;
+	font-size: 12px;
+}
+.report_tbl_hdr{
+	border-bottom: 1px solid #666666;
+	font-size: 14px;
+	color: #0099cc;
+	font-weight: bold;
+	text-align: center;
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+.report_tbl_c1{
+	border-top: 1px solid #666666;
+	border-bottom: 1px solid #666666;
+	padding-left: 2px;
+	padding-right: 2px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	
+	color: #2C6996;
+}
+.report_tbl_c2{
+	border-top: 1px solid #666666;
+	border-bottom: 1px solid #666666;
+	padding-left: 2px;
+	padding-right: 2px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+}
+.report_tbl_c3{
+	border-top: 1px solid #666666;
+	border-bottom: 1px solid #666666;
+	padding-left: 2px;
+	padding-right: 2px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	
+	color: #666666;
+}
+.report_tbl_ftr{
+	border-top: 1px solid #666666;
+	font-size: 15px;
+	font-weight: bold;
+	text-align: center;
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////////////////////// */
+
+#mobheader {
+	width: 100%;
+	box-shadow: 0px 2px 2px #aaaaaa;
+}
+
+.question {
+	font-size: 130%;
+	color: #222222;
+}
+
+.sidenote {
+	font-size: 90%;
+	color: #444444;
+}
+
+.warning {
+	font-size: 90%;
+	color: #ff9900;
+}
