@@ -18,6 +18,8 @@ var mkb = {
     performSignupCB: null,
     kbs: [],
     _userObj: false,
+    persistUser: true, // show we try and save the user's info in localStorage?
+    LOCAL_STORAGE_USER_KEY: "mkb_user",
     startup: function(defaultView, viewChangeCB, performLoginCB, performLogoutCB, resetPwdCB, populateKBsCB, performSignupCB) {
         var self = this;
         self.lastKBID = 0;
@@ -35,6 +37,20 @@ var mkb = {
         self.populateKBsCB = populateKBsCB;
         self.performSignupCB = performSignupCB;
         self._userObj = false;
+        if (self.persistUser && (typeof(Storage) !== "undefined")) {
+            // OK, we have local storage on this browser. Tru and retrieve the  user object
+            var u = localStorage.getItem(self.LOCAL_STORAGE_USER_KEY);
+            if (u) {
+                try {
+                    u = JSON.parse(u);
+                } catch (e) {
+                    u = null;
+                }
+            }
+            if (u && $.isPlainObject(u)) {
+                self._userObj = u;
+            }
+        }
         self.currentView = "";
         self._windowPopState(); // show initial screen (defaultView)
     },
@@ -188,6 +204,10 @@ var mkb = {
             password,
             function(userObj) {
                 self._userObj = userObj;
+                if (self.persistUser && (typeof(Storage) !== "undefined")) {
+                    // OK, we have local storage on this browser. Store the user object
+                    localStorage.setItem(self.LOCAL_STORAGE_USER_KEY, JSON.stringify(userObj));
+                }
                 successCB(self._userObj);
             },
             function(errorMsg) {
@@ -224,6 +244,10 @@ var mkb = {
         self.performLogoutCB(
             function() {
                 self._userObj = false;
+                if (self.persistUser && (typeof(Storage) !== "undefined")) {
+                    // OK, we have local storage on this browser. Remove the user object
+                    localStorage.removeItem(self.LOCAL_STORAGE_USER_KEY);
+                }
                 successCB();
             },
             function(errorMsg) {
