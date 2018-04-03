@@ -143,7 +143,7 @@ var mkb = {
             var $t = $("<div></div>")
                 .addClass("mkb-list-tile")
                 .attr("kbid", kb.kbid)
-                .attr("title", kb.title)
+                .attr("title", kb.description)
                 .css({
                     width: sz + "px",
                     height: sz + "px"

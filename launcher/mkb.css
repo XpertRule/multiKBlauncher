@@ -56,6 +56,12 @@ html, body{
 .mkb-list-tile:hover{
     opacity: 0.8;
 }
+.mkb-list-tile:hover .mkb-list-tile-txt{
+    background-color: #16ab39;
+    color: #fff;
+    opacity: 1.0;
+    text-shadow: none;
+}
 .mkb-list-tile-txt{
     padding: 0.5em 8px;
     background-color: rgba(255, 255, 255, 0.5);
