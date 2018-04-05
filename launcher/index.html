@@ -290,8 +290,10 @@
                         <div class="ui negative message" id="login_error">
                             <p>fail description</p>
                         </div>
-                        <button class="ui positive button" id="login_go">Login</button>
-                        <button class="ui basic secondary tiny button" id="login_forgotpwd" style="float: right;">Forgotten Password</button>
+                        <div style="display: flex; justify-content: space-between;">
+                            <button class="ui basic secondary tiny button" id="login_forgotpwd" style="float: right;">Forgotten Password</button>
+                            <button class="ui positive button" id="login_go">Login</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -336,7 +338,9 @@
                         <div class="ui positive message" id="signup_response">
                             <p>An email has been sent to your supplied address. Please follow the directions</p>
                         </div>
-                        <button class="ui positive button" id="signup_go">Signup</button>
+                        <div style="text-align: right;">
+                            <button class="ui positive button" id="signup_go">Signup</button>
+                        </div>
                     </div>
                 </div>
             </div>
